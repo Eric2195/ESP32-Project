@@ -36,7 +36,7 @@ esp_err_t display_init(void)
         .cs_gpio_num = PIN_CS,
         .dc_gpio_num = PIN_DC,
         .spi_mode = 0,
-        .pclk_hz = 40 * 1000 * 1000,  // 40 MHz
+        .pclk_hz = 26 * 1000 * 1000,  // 26 MHz (降低时钟，减少花屏/左侧噪点)
         .trans_queue_depth = 10,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
@@ -46,6 +46,7 @@ esp_err_t display_init(void)
     ESP_LOGI(TAG, "Creating ST7789 panel...");
     esp_lcd_panel_dev_config_t panel_cfg = {
         .reset_gpio_num = PIN_RST,
+        // 若修复后颜色仍偏红/偏蓝，可改为 LCD_RGB_ELEMENT_ORDER_BGR
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .bits_per_pixel = 16,
     };
@@ -53,11 +54,20 @@ esp_err_t display_init(void)
 
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
-    esp_lcd_panel_invert_color(panel_handle, false);  // 关闭颜色反转
-    esp_lcd_panel_set_gap(panel_handle, 0, 0);
-    // Rotation 1 = landscape: swap_xy + mirror_y (matches Adafruit setRotation(1))
+
+    // ST7789 绝大多数 1.54" 240x240 屏必须打开颜色反转，否则画面发绿/发暗
+    esp_lcd_panel_invert_color(panel_handle, true);
+
+    // 不要强制 set_gap(0,0)，让 st7789 驱动使用 240x240 默认的行列偏移。
+    // 如果仍有显示偏移或黑边，可尝试下面常见偏移：
+    // esp_lcd_panel_set_gap(panel_handle, 0, 80);   // 驱动 IC 实际 240x320 时常见
+    // esp_lcd_panel_set_gap(panel_handle, 80, 0);
+
+    // Rotation: swap_xy + mirror 对应横屏。
+    // 原代码 mirror(false, true) 对应 Adafruit setRotation(1)。
+    // 你反馈图像倒过来，这里改为 mirror(true, false)（相当于横屏转 180°）。
     esp_lcd_panel_swap_xy(panel_handle, true);
-    esp_lcd_panel_mirror(panel_handle, false, true);
+    esp_lcd_panel_mirror(panel_handle, true, false);
     esp_lcd_panel_disp_on_off(panel_handle, true);
 
     // Allocate DMA line buffer
