@@ -36,7 +36,8 @@ esp_err_t display_init(void)
         .cs_gpio_num = PIN_CS,
         .dc_gpio_num = PIN_DC,
         .spi_mode = 0,
-        .pclk_hz = 26 * 1000 * 1000,  // 26 MHz (降低时钟，减少花屏/左侧噪点)
+        // 16 MHz：继续降低时钟，排除 SPI 信号失真导致的偏色/花屏
+        .pclk_hz = 16 * 1000 * 1000,
         .trans_queue_depth = 10,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
@@ -46,8 +47,10 @@ esp_err_t display_init(void)
     ESP_LOGI(TAG, "Creating ST7789 panel...");
     esp_lcd_panel_dev_config_t panel_cfg = {
         .reset_gpio_num = PIN_RST,
-        // 若修复后颜色仍偏红/偏蓝，可改为 LCD_RGB_ELEMENT_ORDER_BGR
+        // Adafruit 默认用 RGB（MADCTL RGB 位 = 0），这里也先用 RGB
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
+        // ESP-IDF 默认 big endian，但这块屏可能解析为 little endian 才对
+        .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
         .bits_per_pixel = 16,
     };
     ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io_handle, &panel_cfg, &panel_handle));
@@ -55,7 +58,13 @@ esp_err_t display_init(void)
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
 
-    // ST7789 绝大多数 1.54" 240x240 屏必须打开颜色反转，否则画面发绿/发暗
+    // 颜色问题调试记录：
+    // - invert(false)+RGB：墨绿色，眼睛变白
+    // - invert(true)+RGB：偏白
+    // - invert(true)+BGR：更偏白
+    // - invert(false)+BGR：墨绿色
+    // 怀疑 ESP-IDF 默认 RAMCTRL big endian 与这块屏不匹配，
+    // 现改为 data_endian=LITTLE + invert=true 再试。
     esp_lcd_panel_invert_color(panel_handle, true);
 
     // 不要强制 set_gap(0,0)，让 st7789 驱动使用 240x240 默认的行列偏移。
