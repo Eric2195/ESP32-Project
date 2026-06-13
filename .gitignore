@@ -1,0 +1,34 @@
+# ESP-IDF build artifacts
+build/
+sdkconfig
+sdkconfig.old
+sdkconfig.defaults.esp32*
+sdkconfig.defaults.esp32
+sdkconfig.defaults.esp32s2
+sdkconfig.defaults.esp32s3
+sdkconfig.defaults.esp32c2
+sdkconfig.defaults.esp32c3
+sdkconfig.defaults.esp32c6
+sdkconfig.defaults.esp32h2
+sdkconfig.defaults.*
+!sdkconfig.defaults
+
+# ESP-IDF component management
+managed_components/
+dependencies.lock
+
+# Local IDE / editor settings with absolute paths
+.claude/settings.local.json
+.vscode/settings.json
+projects/*/.vscode/settings.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Flash / monitor session artifacts
+*.tmp
+*.bak

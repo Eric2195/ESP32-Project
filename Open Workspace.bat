@@ -1,0 +1,3 @@
+@echo off
+echo Opening ESP32 Project in VSCode...
+start "" "C:\Users\zr\AppData\Local\Programs\Microsoft VS Code\Code.exe" "C:\Users\zr\Desktop\ESP32 Project\ESP32 Project.code-workspace"
